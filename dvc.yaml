@@ -1,0 +1,91 @@
+stages:
+
+  # ─────────────────────────────────────────
+  # Stage 1: Download / refresh raw data
+  # ─────────────────────────────────────────
+  get_data:
+    cmd: python dataset.py
+    deps:
+      - dataset.py
+    outs:
+      - data/train.csv
+      - data/test.csv
+
+  # ─────────────────────────────────────────
+  # Stage 2: Data ingestion & validation
+  # ─────────────────────────────────────────
+  ingest:
+    cmd: python -c "
+      from steps.ingest import Ingestion;
+      ing = Ingestion();
+      ing.load_data()
+      "
+    deps:
+      - steps/ingest.py
+      - data/train.csv
+      - data/test.csv
+    params:
+      - config.yml:
+          - data.train_path
+          - data.test_path
+
+  # ─────────────────────────────────────────
+  # Stage 3: Data cleaning
+  # ─────────────────────────────────────────
+  clean:
+    cmd: python -c "
+      import pandas as pd;
+      from steps.clean import Cleaner;
+      cleaner = Cleaner();
+      train = pd.read_csv('data/train.csv');
+      test  = pd.read_csv('data/test.csv');
+      cleaner.clean_data(train).to_csv('data/train_clean.csv', index=False);
+      cleaner.clean_data(test).to_csv('data/test_clean.csv',  index=False)
+      "
+    deps:
+      - steps/clean.py
+      - data/train.csv
+      - data/test.csv
+    outs:
+      - data/train_clean.csv
+      - data/test_clean.csv
+
+  # ─────────────────────────────────────────
+  # Stage 4: Model training + MLflow logging
+  # ─────────────────────────────────────────
+  train:
+    cmd: python main.py
+    deps:
+      - main.py
+      - steps/ingest.py
+      - steps/clean.py
+      - steps/train.py
+      - steps/predict.py
+      - data/train_clean.csv
+      - data/test_clean.csv
+      - config.yml
+    params:
+      - config.yml:
+          - model.name
+          - model.params
+          - train.test_size
+          - train.random_state
+          - train.shuffle
+    outs:
+      - models/model.pkl
+    metrics:
+      - metrics.json:
+          cache: false   # keep metrics in Git, not DVC cache
+
+  # ─────────────────────────────────────────
+  # Stage 5: Unit tests (pytest)
+  # ─────────────────────────────────────────
+  test:
+    cmd: python -m pytest tests/ -v --tb=short
+    deps:
+      - tests/test_ingest.py
+      - tests/test_clean.py
+      - steps/ingest.py
+      - steps/clean.py
+      - data/train.csv
+      - data/test.csv
