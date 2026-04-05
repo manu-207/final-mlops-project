@@ -12,37 +12,12 @@ stages:
       - data/test.csv
 
   # ─────────────────────────────────────────
-  # Stage 2: Data ingestion & validation
-  # ─────────────────────────────────────────
-  ingest:
-    cmd: python -c "
-      from steps.ingest import Ingestion;
-      ing = Ingestion();
-      ing.load_data()
-      "
-    deps:
-      - steps/ingest.py
-      - data/train.csv
-      - data/test.csv
-    params:
-      - config.yml:
-          - data.train_path
-          - data.test_path
-
-  # ─────────────────────────────────────────
-  # Stage 3: Data cleaning
+  # Stage 2: Data cleaning
   # ─────────────────────────────────────────
   clean:
-    cmd: python -c "
-      import pandas as pd;
-      from steps.clean import Cleaner;
-      cleaner = Cleaner();
-      train = pd.read_csv('data/train.csv');
-      test  = pd.read_csv('data/test.csv');
-      cleaner.clean_data(train).to_csv('data/train_clean.csv', index=False);
-      cleaner.clean_data(test).to_csv('data/test_clean.csv',  index=False)
-      "
+    cmd: python clean_data.py
     deps:
+      - clean_data.py
       - steps/clean.py
       - data/train.csv
       - data/test.csv
@@ -51,7 +26,7 @@ stages:
       - data/test_clean.csv
 
   # ─────────────────────────────────────────
-  # Stage 4: Model training + MLflow logging
+  # Stage 3: Model training + MLflow logging
   # ─────────────────────────────────────────
   train:
     cmd: python main.py
@@ -75,10 +50,10 @@ stages:
       - models/model.pkl
     metrics:
       - metrics.json:
-          cache: false   # keep metrics in Git, not DVC cache
+          cache: false
 
   # ─────────────────────────────────────────
-  # Stage 5: Unit tests (pytest)
+  # Stage 4: Unit tests
   # ─────────────────────────────────────────
   test:
     cmd: python -m pytest tests/ -v --tb=short

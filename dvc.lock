@@ -1,0 +1,18 @@
+schema: '2.0'
+stages:
+  get_data:
+    cmd: python dataset.py
+    deps:
+    - path: dataset.py
+      hash: md5
+      md5: ac5034aa0c9e31873d2c7a54e27915a7
+      size: 1037
+    outs:
+    - path: data/test.csv
+      hash: md5
+      md5: 9422d87edc343113f36b45f317709d1a
+      size: 3928750
+    - path: data/train.csv
+      hash: md5
+      md5: 6160386fdbea13c11fa556928b10937d
+      size: 15708080
