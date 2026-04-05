@@ -1,4 +1,4 @@
-name: MLOps CI Pipeline (DVC + S3 + MLflow)
+name: MLOps CI Pipeline (DVC + S3 + MLflow) latest
 
 on:
   push:
